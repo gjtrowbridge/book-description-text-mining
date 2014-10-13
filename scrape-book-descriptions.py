@@ -3,6 +3,26 @@ import requests
 from bs4 import BeautifulSoup, NavigableString
 import re
 
+def get_links_from_page(category_url):
+  #Get all links
+  response = requests.get(category_url)
+  soup = BeautifulSoup(response.text)
+  links = soup.select('div#search-results-1 ol.result-set li.result div.display-tile-item div.details a.title')
+  
+  #Creates an array of objects containing data about the books
+  books = []
+  for link in links:
+    book = {}
+    book['url'] = link['href']
+    c = link.contents[0]
+    if (isinstance(c, NavigableString)):
+      book['title'] = link.contents[0]
+    else:
+      book['title'] = c['title']
+    books.append(book)
+
+  print books
+
 def get_review_in_sentences(book_url):
   
   #Get book review
@@ -27,5 +47,5 @@ def get_review_in_sentences(book_url):
 
 
 
-
-get_review_in_sentences('http://www.barnesandnoble.com/w/skin-game-jim-butcher/1115202091?ean=9780451464392')
+get_links_from_page('http://www.barnesandnoble.com/s/?aud=tra&csrftoken=loWBCaA9KDjHBpXHkQRHZNHZHYuQ6xZ0&dref=51&fmt=physical&size=90&sort=SA&store=BOOK&view=grid')
+# get_review_in_sentences('http://www.barnesandnoble.com/w/skin-game-jim-butcher/1115202091?ean=9780451464392')
