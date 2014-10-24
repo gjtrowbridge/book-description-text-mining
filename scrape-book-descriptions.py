@@ -2,6 +2,7 @@
 import requests
 from bs4 import BeautifulSoup, NavigableString
 import re
+import json
 
 def get_links_from_page(category_url):
   #Get all links
@@ -20,15 +21,19 @@ def get_links_from_page(category_url):
     else:
       book['title'] = c['title']
     books.append(book)
+    print 'Added book: ' + book['title']
 
-  print books
+  return books
 
-def get_review_in_sentences(book_url):
+def add_book_descriptions(book):
   
+  print 'Getting description for book: ' + book['title']
+
   #Get book review
-  response = requests.get(book_url)
+  response = requests.get(book['url'])
   soup = BeautifulSoup(response.text)
   review = soup.select('div.simple-html')[1]
+  book['raw_description'] = review
 
   #Remove excess whitespace, tags, newlines 
   p = re.compile('(</?[a-zA-z]*/?>|\r|\s{2,}|\t)')
@@ -41,11 +46,18 @@ def get_review_in_sentences(book_url):
   review = '.'.join(review)
   p = re.compile('\s+')
   review = p.sub(' ', review)
-  sentences = review.split('.')
-  print sentences
+  book['sentences'] = review.split('.')
 
+  #Not necessary, but there if needed
+  return book
 
+#Get all book links
+books = get_links_from_page('http://www.barnesandnoble.com/s/?aud=tra&csrftoken=loWBCaA9KDjHBpXHkQRHZNHZHYuQ6xZ0&dref=51&fmt=physical&size=90&sort=SA&store=BOOK&view=grid')
 
+#Get the book descriptions
+for book in books:
+  add_book_descriptions(book)
 
-get_links_from_page('http://www.barnesandnoble.com/s/?aud=tra&csrftoken=loWBCaA9KDjHBpXHkQRHZNHZHYuQ6xZ0&dref=51&fmt=physical&size=90&sort=SA&store=BOOK&view=grid')
-# get_review_in_sentences('http://www.barnesandnoble.com/w/skin-game-jim-butcher/1115202091?ean=9780451464392')
+#Output the books data to a text file
+f = open('book_data.txt', 'w')
+f.write(json.dumps(books))
