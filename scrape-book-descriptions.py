@@ -27,11 +27,11 @@ def get_links_from_page(category_url):
     book['url'] = link['href']
     c = link.contents[0]
     if (isinstance(c, NavigableString)):
-      book['title'] = link.contents[0]
+      book['title'] =  c.encode('ascii', 'ignore')
     else:
-      book['title'] = c['title']
+      print type(c)
+      book['title'] = c['title'].encode('ascii', 'ignore')
     books.append(book)
-    print 'Added book: ' + book['title']
 
   return books
 
@@ -71,23 +71,22 @@ def add_book_descriptions(book):
   return book
 
 #Get all book links
-books = get_links_from_page('http://www.barnesandnoble.com/s/?aud=tra&csrftoken=loWBCaA9KDjHBpXHkQRHZNHZHYuQ6xZ0&dref=51&fmt=physical&size=90&sort=SA&store=BOOK&view=grid')
+# mystery_crime_thriller_books = get_links_from_page('http://www.barnesandnoble.com/s/?csrfToken=xTH3wHNOE5hpZzyrhoMA4atLjUZr3LiB&sort=SA&size=90&aud=tra&csrftoken=loWBCaA9KDjHBpXHkQRHZNHZHYuQ6xZ0&dref=50&fmt=physical&store=BOOK&view=grid')
+# scifi_fantasy_books = get_links_from_page('http://www.barnesandnoble.com/s/?csrfToken=aOYdQXwMSsh20t51PWAxuFMK2ZdX0DnK&sort=SA&size=90&aud=tra&csrftoken=loWBCaA9KDjHBpXHkQRHZNHZHYuQ6xZ0&dref=51&fmt=physical&store=BOOK&view=grid')
 
+def get_book_descriptions(url, category):
+  books = get_links_from_page(url)
 
-# book = {}
-# book['url'] = 'http://www.barnesandnoble.com/w/burned-karen-marie-moning/1118082011?ean=9780553390377'
-# book['url'] = 'http://www.barnesandnoble.com/w/george-r-r-martins-a-game-of-thrones-5-book-boxed-set-martin-george-r-r/1117519253?ean=9780345535528'
-# book['title'] = 'burned'
-# add_book_descriptions(book)
-# print book
+  #Get the book descriptions
+  for book in books:
+    add_book_descriptions(book)
+  
+  f = open(category + '_book_data.txt', 'w')
+  f.write(json.dumps(books))
+  f.close()
 
-#Get the book descriptions
-# for book in books:
-#   add_book_descriptions(book)
-
-# #Output the books data to a text file
-# f = open('book_data.txt', 'w')
-# f.write(json.dumps(books))
+get_book_descriptions('http://www.barnesandnoble.com/s/?csrfToken=xZxbp584k6gmsFaSq0zh0obG8I7sx9nz&sort=SA&size=90&aud=tra&dref=42&fmt=physical&store=BOOK&view=grid', 'humor')
+get_book_descriptions('http://www.barnesandnoble.com/s/?csrfToken=xZxbp584k6gmsFaSq0zh0obG8I7sx9nz&sort=SA&size=90&aud=tra&csrftoken=xZxbp584k6gmsFaSq0zh0obG8I7sx9nz&dref=9&fmt=physical&store=BOOK&view=grid', 'fiction_literature')
 
 driver.quit()
 print 'Completed.'
