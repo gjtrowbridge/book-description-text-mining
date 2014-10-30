@@ -1,6 +1,8 @@
 var Q = require('q');
 var fs = require('fs');
 var saveHtmlForPage = require('./saveHtmlForPage');
+var preprocessText = require('./preprocessText');
+Q.longStackSupport = true;
 
 var extractLinks = function(filePath) {
   return Q.ninvoke(fs, 'readFile', filePath, 'utf8')
@@ -31,8 +33,15 @@ var extractLinks = function(filePath) {
       if (title) {
         book.title = title;
       }
+
       if (link) {
         book.link = link;
+      }
+
+      if (book.link && book.title) {
+        var re = /\/([^\/]*).html?$/;
+        var shortTitle = re.exec(book.link)[1];
+        book.shortTitle = shortTitle;
       }
     }
     return books;
@@ -75,18 +84,22 @@ var isTitle = function(line) {
 
 extractLinks('html/home_page.html')
 
-.then(function(books) {
-  var GetBookFunction = function(book) {
-    return function() {
-      console.log(book.title);
-    }
-  };
-  books = books.map(function(book, index) {
-    saveHtmlForPage(book.link, 'html/books/' + index + '_' + book.category + '.html');
-  });
+// .then(function(books) {
+//   books = books.map(function(book, index) {
+//     saveHtmlForPage(book.link, 'html/books/' + index + '_' + book.category + '.html');
+//   });
   
+//   return Q.all(books);
+// })
+
+.then(function(books) {
+  books = books.map(function(book, index) {
+    book.index = index;
+    book.htmlPath = 'html/books/' + index + '_' + book.category + '.html';
+    book.textPath = 'preprocessed/' + index + '_' + book.category + '_' + book.shortTitle + '.txt';
+    return preprocessText(book);
+  });
   return Q.all(books);
 })
-
 
 .done(function() {},function(err) { throw err; });
