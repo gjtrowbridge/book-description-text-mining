@@ -27,6 +27,8 @@ var count = 0;
 var preprocessText = function(book) {
   // Read in book data
   return Q.ninvoke(fs, 'readFile', book.htmlPath, 'utf8')
+
+  // Cut out everything except the book description
   .then(function(data) {
     var lines = data.split('\n');
     var startIndex = 0;
@@ -46,20 +48,13 @@ var preprocessText = function(book) {
     book.excerpt = book.excerpt.replace(/<[^>]*>/g, ' ');
     book.excerpt = book.excerpt.replace(/[^\w\s]*/g, '');
     book.excerpt = book.excerpt.replace(/\s{2,}/g, ' ');
-    // book.excerpt = book.excerpt.replace(/<([a-z]|"|=|,|#|-)*>/g, ' ');
-    // book.excerpt = book.excerpt.replace(/<\/([a-z]|"|)*>/g, ' ');
-    // book.excerpt = book.excerpt.replace(/<[^a-z\s']>/g, '');
-    // book.excerpt = book.excerpt.replace(/<\w*>/, '');
-    // book.excerpt = book.excerpt.replace('</p>', '');
-    // book.excerpt = book.excerpt.replace('<b>', '');
+    book.excerpt = book.excerpt.replace(/\s$/g, '');
 
-    return saveTextToPage(book.excerpt, book.textPath);
+    return saveTextToPage(book.excerpt, book.textPath)
+    .then(function() {
+      return book;
+    });
   })
-
-  .then(function() {
-
-  })
-  // Cut out everything except the book description
 
   
 };
