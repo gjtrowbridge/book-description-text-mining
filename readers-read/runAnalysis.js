@@ -3,8 +3,17 @@ var fs = require('fs');
 var saveHtmlForPage = require('./saveHtmlForPage');
 var preprocessText = require('./preprocessText');
 var textMining = require('./textMining');
+var stopWords = require('stopwords');
 
 Q.longStackSupport = true;
+
+var stopWordsDict = {
+  '': true
+};
+for (var i=0; i<stopWords.length; i++) {
+  var word = stopWords[i];
+  stopWordsDict[word] = true;
+}
 
 var extractLinks = function(filePath) {
   return Q.ninvoke(fs, 'readFile', filePath, 'utf8')
@@ -117,7 +126,7 @@ extractLinks('html/home_page.html')
     __totalCount: 0
   };
   for (var i=0; i<books.length; i++) {
-    textMining.updateWordCounts(books[i], totalWordCounts);
+    textMining.updateWordCounts(books[i], totalWordCounts, stopWordsDict);
   }
   for (var i=0; i<books.length; i++) {
     textMining.updateZScores(books[i], totalWordCounts);

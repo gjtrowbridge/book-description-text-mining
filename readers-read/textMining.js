@@ -28,7 +28,7 @@ textMining.updateZScores = function(book, totalWordCounts) {
 };
 
 
-textMining.updateWordCounts = function(book, totalWordCounts) {
+textMining.updateWordCounts = function(book, totalWordCounts, stopWordsDict) {
   book.wordCounts = {
     __totalCount: 0
   };
@@ -36,18 +36,20 @@ textMining.updateWordCounts = function(book, totalWordCounts) {
   var words = book.excerpt.split(/\s+/);
   for (var i=0; i<words.length; i++) {
     var word = words[i];
-    if (book.wordCounts.hasOwnProperty(word)) {
-      book.wordCounts[word]++;
-    } else {
-      book.wordCounts[word] = 1;
+    if (!stopWordsDict.hasOwnProperty(word)) {
+      if (book.wordCounts.hasOwnProperty(word)) {
+        book.wordCounts[word]++;
+      } else {
+        book.wordCounts[word] = 1;
+      }
+      if (totalWordCounts.hasOwnProperty(word)) {
+        totalWordCounts[word]++;
+      } else {
+        totalWordCounts[word] = 1;
+      }
+      book.wordCounts.__totalCount++;
+      totalWordCounts.__totalCount++;
     }
-    if (totalWordCounts.hasOwnProperty(word)) {
-      totalWordCounts[word]++;
-    } else {
-      totalWordCounts[word] = 1;
-    }
-    book.wordCounts.__totalCount++;
-    totalWordCounts.__totalCount++;
   }
 
   return book;
