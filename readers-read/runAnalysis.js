@@ -3,12 +3,13 @@ var fs = require('fs');
 var saveHtmlForPage = require('./saveHtmlForPage');
 var preprocessText = require('./preprocessText');
 var textMining = require('./textMining');
-var stopWords = require('stopwords');
+var stopWords = require('stopwords').english;
 
 Q.longStackSupport = true;
 
 var stopWordsDict = {
-  '': true
+  '': true,
+  'chapter': true
 };
 for (var i=0; i<stopWords.length; i++) {
   var word = stopWords[i];
@@ -136,25 +137,33 @@ extractLinks('html/home_page.html')
 
 // Count common keywords across groups
 .then(function(books) {
-  // var numberToCheck = 300;
   var zScoreCutoff = 5;
   var topHits = {};
-  var minZScore = {};
+  var category = 'children';
   for (var i=0; i<books.length; i++) {
     var book = books[i];
-    if (book.category === 'mystery') {
+    if (book.category === category) {
       for (var j=0; j<book.zScores.length; j++) {
         var keyword = book.zScores[j][0];
         var zScore = book.zScores[j][1];
         if (zScore >= zScoreCutoff) {
           if (topHits.hasOwnProperty(keyword)) {
-            topHits[keyword]++;
-            if (minZScore[keyword] > zScore) {
-              minZScore[keyword] = zScore;
+            var th = topHits[keyword];
+            th.total += zScore;
+            th.count++;
+            if (th.minZScore > zScore) {
+              th.minZScore = zScore;
+            }
+            if (th.maxZScore < zScore) {
+              th.maxZScore = zScore
             }
           } else {
-            topHits[keyword] = 1;
-            minZScore[keyword] = zScore;
+            topHits[keyword] = {
+              count: 1,
+              total: zScore,
+              minZScore: zScore,
+              maxZScore: zScore
+            }
           }
         }
       }
@@ -162,30 +171,83 @@ extractLinks('html/home_page.html')
   }
   var sortedTopHits = [];
   for (keyword in topHits) {
-    sortedTopHits.push([keyword, topHits[keyword], minZScore[keyword]]);
+    var th = topHits[keyword];
+    sortedTopHits.push([keyword, th.count, th.minZScore, th.total]);
   }
   sortedTopHits = sortedTopHits.sort(function(a,b) {
     return b[1] - a[1];
   });
-  console.log(sortedTopHits.slice(0, 100));
-  return books;
+  return {
+    books: books,
+    topHits: sortedTopHits,
+    category: category,
+    zScoreCutoff: zScoreCutoff
+  };
 })
 
-.then(function(books) {
-  var categories = {};
-  for (var i=0; i<books.length; i++) {
-    var book = books[i]
-    var category = book.category;
+.then(function(data) {
+  var useTopX = 100;
+  var books = data.books;
+  var topHits = data.topHits.slice(0, useTopX);
+  var outputIndicators = true;
 
-    if (categories.hasOwnProperty(category)) {
-      categories[category].push(book);
-    } else {
-      categories[category] = [book];
-    }
-  }
-  for (category in categories) {
-    console.log(category, categories[category].length)
-  }
+  var headers = topHits.map(function(arr) {
+    return '"' + arr[0] + '"';
+  });
+
+  var header = '"title" "category" ' + headers.join(' ');
+  
+  var lines = books.map(function(book, index) {
+    var features = topHits.map(function(arr) {
+      var keyword = arr[0];
+      var zScore;
+      var present = 0;
+      if (book.zScoresDict.hasOwnProperty(keyword)) {
+        zScore = book.zScoresDict[keyword];
+        present = 1;
+      } else {
+        var ur = textMining.universalRates[keyword];
+        zScore = -1 * ur / Math.sqrt(ur);
+        present = 0;
+      }
+      if (outputIndicators) {
+        return present;
+      } else {
+        return zScore;
+      }
+    });
+    features.unshift('"' + index + '" "' + book.shortTitle + '" "' + book.category + '"');
+    return features.join(' ');
+  });
+
+  var result = header + '\n' + lines.join('\n');
+
+  var outputPath = './structured_data/' + data.category + '_top_' +
+      useTopX + '_zscores_above_' + data.zScoreCutoff + '_indicators_' +
+      outputIndicators + '.txt';
+
+  console.log(outputPath);
+
+  return Q.ninvoke(fs, 'writeFile', outputPath, result);
+
+
 })
+
+// .then(function(books) {
+//   var categories = {};
+//   for (var i=0; i<books.length; i++) {
+//     var book = books[i]
+//     var category = book.category;
+
+//     if (categories.hasOwnProperty(category)) {
+//       categories[category].push(book);
+//     } else {
+//       categories[category] = [book];
+//     }
+//   }
+//   for (category in categories) {
+//     console.log(category, categories[category].length)
+//   }
+// })
 
 .done(function() {},function(err) { throw err; });
